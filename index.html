@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>💜 cartaDeAmor.exe</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&display=swap');
+
+  :root {
+    --green: #ffffff;
+    --pink: #ffffff;
+    --purple: #ffffff;
+    --blue: #29b6f6;
+    --yellow: #ffee58;
+    --red: #ef5350;
+    --lavender: #ffffff;
+    --bg: #0d0d0d;
+    --bg2: #141414;
+    --bg3: #1c1c1c;
+    --comment: #757575;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: #cdd6f4;
+    font-family: 'Fira Code', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  #canvas-bg {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 24px 20px;
+  }
+
+  .ide-bar {
+    background: var(--bg2);
+    border: 1px solid #2a2a3e;
+    border-bottom: none;
+    border-radius: 12px 12px 0 0;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .dot { width: 13px; height: 13px; border-radius: 50%; }
+  .dot.r { background: #ff5555; }
+  .dot.y { background: #f1fa8c; }
+  .dot.g { background: #50fa7b; }
+  .ide-title { margin-left: 10px; color: var(--comment); font-size: 13px; }
+  .ide-title span { color: var(--pink); }
+
+  .editor {
+    background: var(--bg2);
+    border: 1px solid #2a2a3e;
+    border-radius: 0 0 12px 12px;
+    padding: 30px 20px 30px 0;
+    margin-bottom: 20px;
+    box-shadow: 0 0 60px rgba(189,147,249,0.07);
+  }
+
+  .line {
+    display: flex;
+    align-items: flex-start;
+    padding: 2px 0;
+    opacity: 0;
+    transform: translateX(-10px);
+    transition: opacity 0.4s, transform 0.4s;
+    min-height: 24px;
+  }
+  .line.visible { opacity: 1; transform: translateX(0); }
+
+  .ln {
+    min-width: 52px;
+    text-align: right;
+    padding-right: 20px;
+    color: #3c3c5c;
+    font-size: 13px;
+    user-select: none;
+    flex-shrink: 0;
+  }
+  .code {
+    font-size: 14px;
+    line-height: 1.75;
+    flex: 1;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .kw       { color: var(--red); }
+  .fn       { color: var(--blue); }
+  .str      { color: var(--green); }
+  .str-pink { color: #ffffff; }
+  .num      { color: var(--yellow); }
+  .cmt      { color: var(--comment); font-style: italic; }
+  .op       { color: var(--red); }
+  .var      { color: var(--yellow); }
+  .bool     { color: var(--green); }
+  .cls      { color: var(--blue); }
+  .paren    { color: #cccccc; }
+  .prop     { color: var(--blue); }
+  .regex    { color: var(--red); }
+
+  /* Badge "días juntas" */
+  .badge {
+    display: inline-block;
+    background: rgba(41,182,246,0.12);
+    border: 1px solid var(--blue);
+    border-radius: 6px;
+    padding: 1px 8px;
+    color: var(--blue);
+    font-size: 12px;
+    margin-left: 6px;
+    vertical-align: middle;
+    animation: glow 2s ease-in-out infinite;
+  }
+  @keyframes glow {
+    0%,100% { box-shadow: 0 0 4px rgba(41,182,246,0.3); }
+    50%      { box-shadow: 0 0 14px rgba(41,182,246,0.7); }
+  }
+
+  /* Pregunta */
+  .question-box {
+    background: var(--bg2);
+    border: 1px solid #2a2a2a;
+    border-left: 4px solid var(--red);
+    border-radius: 12px;
+    padding: 32px;
+    margin-top: 10px;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.9s ease;
+    text-align: center;
+  }
+  .question-box.visible { opacity: 1; transform: translateY(0); }
+
+  .question-label {
+    font-size: 12px;
+    color: var(--comment);
+    margin-bottom: 8px;
+    letter-spacing: 1px;
+  }
+  .question-text {
+    font-size: 19px;
+    color: #ffffff;
+    margin-bottom: 30px;
+    line-height: 1.6;
+    text-shadow: 0 0 14px rgba(255,255,255,0.2);
+  }
+  .question-text span { color: var(--red); }
+
+  .btn-group {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    font-family: 'Fira Code', monospace;
+    font-size: 15px;
+    padding: 14px 36px;
+    border: 2px solid;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-weight: 600;
+    letter-spacing: 1px;
+  }
+  .btn-yes {
+    background: rgba(0,230,118,0.08);
+    border-color: var(--green);
+    color: var(--green);
+  }
+  .btn-yes:hover {
+    background: rgba(0,230,118,0.2);
+    box-shadow: 0 0 28px rgba(0,230,118,0.45);
+    transform: scale(1.06);
+  }
+  .btn-no {
+    background: rgba(239,83,80,0.07);
+    border-color: var(--red);
+    color: var(--red);
+  }
+  .btn-no:hover {
+    background: rgba(239,83,80,0.18);
+    box-shadow: 0 0 24px rgba(239,83,80,0.3);
+    transform: scale(1.06);
+  }
+
+  .response-box {
+    display: none;
+    margin-top: 24px;
+    padding: 24px;
+    border-radius: 10px;
+    font-size: 15px;
+    line-height: 1.9;
+    animation: popIn 0.5s cubic-bezier(.175,.885,.32,1.275);
+    border: 1px solid;
+  }
+  .response-yes { background: rgba(0,230,118,0.06); border-color: var(--green); color: var(--green); }
+  .response-no  { background: rgba(239,83,80,0.06); border-color: var(--red);   color: var(--red); }
+
+  @keyframes popIn {
+    from { opacity:0; transform: scale(0.88); }
+    to   { opacity:1; transform: scale(1); }
+  }
+
+  .particle {
+    position: fixed;
+    pointer-events: none;
+    z-index: 999;
+    animation: floatUp 2.8s ease-out forwards;
+  }
+  @keyframes floatUp {
+    0%   { opacity:1; transform: translateY(0) scale(1) rotate(0deg); }
+    100% { opacity:0; transform: translateY(-240px) scale(1.5) rotate(25deg); }
+  }
+
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: #2a2a3e; border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<canvas id="canvas-bg"></canvas>
+
+<div class="container">
+  <div class="ide-bar">
+    <div class="dot r"></div>
+    <div class="dot y"></div>
+    <div class="dot g"></div>
+    <span class="ide-title">💜 <span>nosotras.love</span> — casi 3 meses y ya para siempre ✨</span>
+  </div>
+
+  <div class="editor" id="editor"></div>
+
+  <div class="question-box" id="questionBox">
+    <div class="question-label">// ejecutando: propuesta_de_vida.exe 💍</div>
+    <div class="question-text" id="questionText">
+      ¿Quieres seguir compartiendo <span>tu vida</span> conmigo<br>
+      y darme la oportunidad de seguir siendo <span>tu futura esposa</span>? 🌸💍
+    </div>
+    <div class="btn-group">
+      <button class="btn btn-yes" onclick="answer(true)">💜 true // Sí, para siempre</button>
+      <button class="btn btn-no"  onclick="answer(false)">🖤 false // No...</button>
+    </div>
+    <div class="response-box response-yes" id="resYes"></div>
+    <div class="response-box response-no"  id="resNo"></div>
+  </div>
+</div>
+
+<script>
+// ── Canvas fondo ──────────────────────────────────────────────────────────────
+const canvas = document.getElementById('canvas-bg');
+const ctx    = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+const stars = Array.from({length: 100}, () => ({
+  x: Math.random() * canvas.width,
+  y: Math.random() * canvas.height,
+  r: Math.random() * 1.4 + 0.2,
+  a: Math.random(),
+  s: (Math.random() - 0.5) * 0.4,
+  hue: Math.random() > 0.5 ? '0,230,118' : Math.random() > 0.5 ? '41,182,246' : '239,83,80'
+}));
+
+function drawCanvas() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  stars.forEach(s => {
+    s.a += s.s * 0.012;
+    if (s.a > 1) s.s = -Math.abs(s.s);
+    if (s.a < 0) s.s =  Math.abs(s.s);
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(${s.hue},${s.a * 0.5})`;
+    ctx.fill();
+  });
+  requestAnimationFrame(drawCanvas);
+}
+drawCanvas();
+window.addEventListener('resize', () => {
+  canvas.width  = window.innerWidth;
+  canvas.height = window.innerHeight;
+});
+
+// ── Líneas del código ─────────────────────────────────────────────────────────
+const lines = [
+  `<span class="cmt">// ❤️ nosotras.love — compilada con todo el corazón</span>`,
+  `<span class="cmt">// versión: 0.3.0  |  estado: estable y muy enamorada  ❤️‍🩹</span>`,
+  ``,
+  `<span class="kw">import</span> <span class="cls">Amor</span><span class="paren">,</span> <span class="cls">Confianza</span><span class="paren">,</span> <span class="cls">Eternidad</span> <span class="kw">from</span> <span class="str">"@corazon/tuyo"</span><span class="paren">;</span>`,
+  `<span class="kw">import</span> <span class="cls">Distancia</span> <span class="kw">from</span> <span class="str">"@obstaculos/superables"</span><span class="paren">;</span>  <span class="cmt">// nunca fue un problema 💪</span>`,
+  ``,
+  `<span class="cmt">// ── Constantes del universo ───────────────────────────────────</span>`,
+  `<span class="kw">const</span> <span class="var">ella</span> <span class="op">=</span> <span class="kw">new</span> <span class="cls">Amor</span><span class="paren">({</span>`,
+  `  <span class="prop">rol</span><span class="paren">:</span>          <span class="str-pink">"mi futura esposa 💍"</span><span class="paren">,</span>`,
+  `  <span class="prop">lugar</span><span class="paren">:</span>        <span class="str-pink">"al otro lado de la pantalla"</span><span class="paren">,</span>`,
+  `  <span class="prop">efecto</span><span class="paren">:</span>       <span class="str-pink">"me hace sonreír sin razón aparente"</span><span class="paren">,</span>`,
+  `  <span class="prop">prioridad</span><span class="paren">:</span>    <span class="cls">Infinity</span><span class="paren">,</span>  <span class="cmt">// máxima prioridad, siempre ❤️</span>`,
+  `<span class="paren">});</span>`,
+  ``,
+  `<span class="kw">const</span> <span class="var">diasJuntas</span>  <span class="op">=</span> <span class="num">~3</span> <span class="cmt">// meses ❤️‍🩹 — pero el tiempo es relativo cuando es contigo</span>`,
+  `<span class="kw">const</span> <span class="var">propuesta</span>   <span class="op">=</span> <span class="bool">true</span><span class="paren">;</span>  <span class="cmt">// sí, ya nos dijimos "para siempre" ❤️</span>`,
+  `<span class="kw">const</span> <span class="var">teAmo</span>       <span class="op">=</span> <span class="bool">true</span><span class="paren">;</span>  <span class="cmt">// const: no se puede reasignar nunca ❤️‍🩹</span>`,
+  ``,
+  `<span class="cmt">// ── Carta ─────────────────────────────────────────────────────</span>`,
+  `<span class="kw">async function</span> <span class="fn">cartaParaTi</span><span class="paren">()</span> <span class="paren">{</span>`,
+  ``,
+  `  <span class="cmt">// Hola, amor mío ✨</span>`,
+  `  <span class="kw">console</span><span class="paren">.</span><span class="fn">log</span><span class="paren">(</span><span class="str-pink">"¿Sabes lo que me pasó el día que llegaste a mi vida?"</span><span class="paren">);</span>`,
+  `  <span class="kw">console</span><span class="paren">.</span><span class="fn">log</span><span class="paren">(</span><span class="str-pink">"todo el código que era mi mundo... dejó de importar tanto ❤️"</span><span class="paren">);</span>`,
+  ``,
+  `  <span class="cmt">// 01. Lo que eres para mí</span>`,
+  `  <span class="kw">const</span> <span class="var">tuEres</span> <span class="op">=</span> <span class="paren">[</span>`,
+  `    <span class="str-pink">"lo mejor que me ha pasado en la vida"</span><span class="paren">,</span>`,
+  `    <span class="str-pink">"la notificación que siempre quiero ver"</span><span class="paren">,</span>`,
+  `    <span class="str-pink">"mi lugar seguro aunque estés lejos"</span><span class="paren">,</span>`,
+  `    <span class="str-pink">"la razón por la que cargo el cargador siempre"</span><span class="paren">,</span>  <span class="cmt">// pa no perder tus llamadas ❤️‍🩹</span>`,
+  `    <span class="str-pink">"el bug más bonito en mi corazón"</span><span class="paren">,</span>`,
+  `  <span class="paren">];</span>`,
+  ``,
+  `  <span class="cmt">// 02. Casi 3 meses... ¿y ya prometidas? sí. ❤️</span>`,
+  `  <span class="kw">if</span> <span class="paren">(</span><span class="var">diasJuntas</span> <span class="op">===</span> <span class="num">"casi tres meses"</span><span class="paren">)</span> <span class="paren">{</span>`,
+  `    <span class="kw">console</span><span class="paren">.</span><span class="fn">log</span><span class="paren">(</span><span class="str">"el tiempo no define lo real que es esto"</span><span class="paren">);</span>`,
+  `    <span class="kw">console</span><span class="paren">.</span><span class="fn">log</span><span class="paren">(</span><span class="str">"desde el primer día sentí que te conocía de siempre ❤️‍🩹"</span><span class="paren">);</span>`,
+  `  <span class="paren">}</span>`,
+  ``,
+  `  <span class="cmt">// 03. La distancia es solo una coordenada</span>`,
+  `  <span class="kw">const</span> <span class="var">distanciaEnKm</span> <span class="op">=</span> <span class="cls">Distancia</span><span class="paren">.</span><span class="fn">calcular</span><span class="paren">();</span>`,
+  `  <span class="kw">const</span> <span class="var">distanciaEnAmor</span> <span class="op">=</span> <span class="num">0</span><span class="paren">;</span>  <span class="cmt">// ← la que importa ❤️</span>`,
+  ``,
+  `  <span class="kw">await</span> <span class="fn">decirte</span><span class="paren">(</span><span class="str-pink">"nuestra relación a distancia es hermosa"</span><span class="paren">);</span>`,
+  `  <span class="kw">await</span> <span class="fn">decirte</span><span class="paren">(</span><span class="str-pink">"cada mensaje tuyo recarga mi felicidad ❤️‍🩹"</span><span class="paren">);</span>`,
+  `  <span class="kw">await</span> <span class="fn">decirte</span><span class="paren">(</span><span class="str-pink">"algún día no habrá pantalla entre las dos ❤️"</span><span class="paren">);</span>`,
+  ``,
+  `  <span class="cmt">// 04. Nuestro amor como objeto de datos ❤️‍🩹</span>`,
+  `  <span class="kw">const</span> <span class="var">nosotras</span> <span class="op">=</span> <span class="paren">{</span>`,
+  `    <span class="prop">tipRelacion</span><span class="paren">:</span>   <span class="str-pink">"dos chicas enamoradas ❤️❤️‍🩹"</span><span class="paren">,</span>`,
+  `    <span class="prop">meses</span><span class="paren">:</span>         <span class="str-pink">"casi tres... y ya prometidas"</span><span class="paren">,</span>`,
+  `    <span class="prop">risas</span><span class="paren">:</span>         <span class="str-pink">"Array(Infinity).fill('❤️')"</span><span class="paren">,</span>`,
+  `    <span class="prop">peleas</span><span class="paren">:</span>        <span class="num">0</span><span class="paren">,</span>  <span class="cmt">// y si las hay, siempre vamos a resolverlas ❤️‍🩹</span>`,
+  `    <span class="prop">bodaFutura</span><span class="paren">:</span>    <span class="bool">true</span><span class="paren">,</span>`,
+  `    <span class="prop">expiracion</span><span class="paren">:</span>    <span class="bool">null</span><span class="paren">,</span>  <span class="cmt">// esto no vence nunca ❤️</span>`,
+  `  <span class="paren">};</span>`,
+  ``,
+  `  <span class="cmt">// 05. Te amo, y no lo digo solo como string</span>`,
+  `  <span class="kw">try</span> <span class="paren">{</span>`,
+  `    <span class="kw">await</span> <span class="fn">amarte</span><span class="paren">(</span><span class="str-pink">"con todo lo que soy y lo que seré"</span><span class="paren">);</span>`,
+  `    <span class="kw">await</span> <span class="fn">cuidarte</span><span class="paren">(</span><span class="str-pink">"aunque estemos en coordenadas distintas"</span><span class="paren">);</span>`,
+  `    <span class="kw">await</span> <span class="fn">elegirte</span><span class="paren">(</span><span class="str-pink">"cada día, consciente y feliz ❤️"</span><span class="paren">);</span>`,
+  `  <span class="paren">}</span> <span class="kw">catch</span> <span class="paren">(</span><span class="var">e</span><span class="paren">)</span> <span class="paren">{</span>`,
+  `    <span class="cmt">// no existe error que no resolvamos juntas ❤️‍🩹</span>`,
+  `  <span class="paren">}</span>`,
+  ``,
+  `  <span class="kw">return</span> <span class="str-pink">"eres mi hogar, mi calma y mi aventura favorita ❤️"</span><span class="paren">;</span>`,
+  `<span class="paren">}</span>`,
+  ``,
+  `<span class="cmt">// Ejecutando con el corazón a mil...</span>`,
+  `<span class="fn">cartaParaTi</span><span class="paren">()</span><span class="paren">.</span><span class="fn">then</span><span class="paren">(</span><span class="var">amor</span> <span class="op">=></span> <span class="kw">console</span><span class="paren">.</span><span class="fn">log</span><span class="paren">(</span><span class="str">\`✅ \${amor}\`</span><span class="paren">));</span>`,
+];
+
+// ── Renderizar líneas ─────────────────────────────────────────────────────────
+const editor = document.getElementById('editor');
+let lineNum = 1, lineEls = [];
+
+lines.forEach(html => {
+  const div  = document.createElement('div');
+  div.className = 'line';
+  const ln   = document.createElement('span'); ln.className = 'ln';
+  const code = document.createElement('span'); code.className = 'code';
+  ln.textContent = lineNum++;
+  code.innerHTML = html === '' ? '&nbsp;' : html;
+  div.appendChild(ln);
+  div.appendChild(code);
+  editor.appendChild(div);
+  lineEls.push(div);
+});
+
+let idx = 0;
+function showNext() {
+  if (idx < lineEls.length) {
+    lineEls[idx].classList.add('visible');
+    idx++;
+    setTimeout(showNext, idx < 6 ? 60 : idx < 25 ? 75 : 50);
+  } else {
+    setTimeout(showQuestion, 700);
+  }
+}
+setTimeout(showNext, 500);
+
+// ── Pregunta ──────────────────────────────────────────────────────────────────
+function showQuestion() {
+  document.getElementById('questionBox').classList.add('visible');
+}
+
+// ── Respuestas ────────────────────────────────────────────────────────────────
+function answer(yes) {
+  document.getElementById('resYes').style.display = 'none';
+  document.getElementById('resNo').style.display  = 'none';
+
+  if (yes) {
+    const el = document.getElementById('resYes');
+    el.style.display = 'block';
+    el.innerHTML = `
+      <div style="font-size:26px;margin-bottom:12px">❤️ <span style="color:#00e676">true</span> — compilando futuro juntas...</div>
+      <div>✅ <span style="color:#cdd6f4">¡Eso era todo lo que necesitaba leer, mi amor!</span></div>
+      <div style="margin-top:8px">❤️ <em>Te amo más de lo que cualquier línea de código puede expresar.</em></div>
+      <div style="margin-top:6px">❤️‍🩹 <em>Voy a dar todo de mí para que nuestra historia sea la más bonita.</em></div>
+      <div style="margin-top:6px">❤️ <em>Algún día no habrá distancia entre las dos. Lo prometo.</em></div>
+      <div style="margin-top:14px;color:var(--comment)">// deployment exitoso: <span style="color:#ef5350">nosotras.forever() ✔ ❤️❤️‍🩹</span></div>
+    `;
+    spawnParticles(['❤️','🌵','🍌','❤️','🌵','🍌','❤️❤️','🌵🌵'], 60);
+  } else {
+    const el = document.getElementById('resNo');
+    el.style.display = 'block';
+    el.innerHTML = `
+      <div style="font-size:26px;margin-bottom:12px">💔 <span style="color:var(--red)">false</span> — unexpected heartbreak</div>
+      <div>❤️‍🩹 <span style="color:#cdd6f4">¿Estás segura...?</span></div>
+      <div style="margin-top:8px"><em>Mi corazón lanzó una excepción que no sé cómo capturar.</em></div>
+      <div style="margin-top:6px;color:var(--red)">Error: <span style="color:#cdd6f4">TuAmorEsNecesario — not found ❤️‍🩹</span></div>
+      <div style="margin-top:14px;color:var(--comment)">// reintentando... <span style="color:var(--red)">retry(Infinity) ❤️</span></div>
+    `;
+    spawnParticles(['💔','🌵','🍌','😢','💔','🌵','🍌'], 55);
+  }
+}
+
+// ── Partículas ────────────────────────────────────────────────────────────────
+function spawnParticles(emojis, count) {
+  for (let i = 0; i < count; i++) {
+    setTimeout(() => {
+      const p = document.createElement('div');
+      p.className = 'particle';
+      p.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+      p.style.left = Math.random() * 100 + 'vw';
+      p.style.top  = (35 + Math.random() * 55) + 'vh';
+      p.style.fontSize = (15 + Math.random() * 22) + 'px';
+      p.style.animationDuration = (1.8 + Math.random() * 2) + 's';
+      document.body.appendChild(p);
+      setTimeout(() => p.remove(), 4000);
+    }, i * 55);
+  }
+}
+</script>
+</body>
+</html>
